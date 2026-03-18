@@ -97,6 +97,8 @@ let cameraStream = null;
 let scanning = false;
 let scanAnimFrame = null;
 let lastScanTime = 0;
+let lastDetectTime = 0;
+let historyEnabled = true;
 const scanHistory = [];
 
 // --- DOM Elements ---
@@ -134,6 +136,8 @@ const els = {
   openUrl: document.getElementById('open-url'),
   scanHistory: document.getElementById('scan-history'),
   historyList: document.getElementById('history-list'),
+  historyEnabled: document.getElementById('history-enabled'),
+  clearHistory: document.getElementById('clear-history'),
   toast: document.getElementById('toast'),
 };
 
@@ -205,6 +209,16 @@ function bindEvents() {
   els.fileInput.addEventListener('change', handleFileUpload);
   els.copyResult.addEventListener('click', () => {
     navigator.clipboard.writeText(els.resultText.textContent).then(() => showToast('Copied'));
+  });
+
+  // History controls
+  els.historyEnabled.addEventListener('change', () => {
+    historyEnabled = els.historyEnabled.checked;
+    renderHistory();
+  });
+  els.clearHistory.addEventListener('click', () => {
+    scanHistory.length = 0;
+    renderHistory();
   });
 
   // Drag and drop
@@ -454,6 +468,12 @@ function requestScanFrame() {
 function scanVideoFrame(timestamp) {
   if (!scanning) return;
 
+  // 500ms cooldown after a successful detection
+  if (timestamp - lastDetectTime < 500) {
+    requestScanFrame();
+    return;
+  }
+
   // Throttle to ~10fps
   if (timestamp - lastScanTime < 100) {
     requestScanFrame();
@@ -540,6 +560,14 @@ function handleScanResult(result) {
   const text = result.text;
   const format = result.format;
 
+  // Set cooldown timestamp
+  lastDetectTime = performance.now();
+
+  // Flash the scanner border
+  els.scannerArea.classList.remove('flash');
+  void els.scannerArea.offsetWidth; // force reflow to restart animation
+  els.scannerArea.classList.add('flash');
+
   els.resultFormat.textContent = format;
   els.resultText.textContent = text;
   els.scanResult.classList.remove('hidden');
@@ -553,10 +581,13 @@ function handleScanResult(result) {
     els.openUrl.style.display = 'none';
   }
 
-  // Add to history
-  scanHistory.unshift({ text, format, time: new Date() });
-  if (scanHistory.length > 50) scanHistory.pop();
-  renderHistory();
+  // Dedup: skip if already in last 5 history entries
+  const isDuplicate = scanHistory.slice(0, 5).some(item => item.text === text);
+  if (!isDuplicate) {
+    scanHistory.unshift({ text, format, time: new Date() });
+    if (scanHistory.length > 50) scanHistory.pop();
+    renderHistory();
+  }
 }
 
 function isUrlString(text) {
@@ -574,6 +605,12 @@ function renderHistory() {
     return;
   }
   els.scanHistory.classList.remove('hidden');
+
+  // When history is disabled, hide the list entirely (result card still shows last scan)
+  if (!historyEnabled) {
+    els.historyList.innerHTML = '';
+    return;
+  }
 
   els.historyList.innerHTML = scanHistory.map((item, i) => {
     const timeStr = item.time.toLocaleTimeString();
