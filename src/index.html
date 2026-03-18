@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Barcode - wbtl.app</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%235b7bd5'/><stop offset='100%25' stop-color='%234a6ac4'/></linearGradient></defs><rect width='32' height='32' rx='6' fill='url(%23g)'/><g transform='translate(4,4)'><path d='M5 6v12' stroke='white' stroke-width='2' stroke-linecap='round'/><path d='M8 6v12' stroke='white' stroke-width='1' stroke-linecap='round'/><path d='M10 6v12' stroke='white' stroke-width='2' stroke-linecap='round'/><path d='M12.5 6v12' stroke='white' stroke-width='1' stroke-linecap='round'/><path d='M14.5 6v12' stroke='white' stroke-width='1.5' stroke-linecap='round'/><path d='M17 6v12' stroke='white' stroke-width='1' stroke-linecap='round'/><path d='M19 6v12' stroke='white' stroke-width='2' stroke-linecap='round'/></g></svg>">
+  <style>
+    :root {
+      --bg: #ffffff;
+      --bg-secondary: #f5f5f7;
+      --text: #1d1d1f;
+      --text-secondary: #6e6e73;
+      --accent: #0071e3;
+      --accent-hover: #0077ed;
+      --border: #d2d2d7;
+      --toggle-bg: #e5e5e5;
+      --toggle-knob: #ffffff;
+      --tool-gradient-start: #5b7bd5;
+      --tool-gradient-end: #4a6ac4;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #000000;
+        --bg-secondary: #1c1c1e;
+        --text: #f5f5f7;
+        --text-secondary: #98989d;
+        --accent: #2997ff;
+        --accent-hover: #40a9ff;
+        --border: #38383a;
+        --toggle-bg: #3a3a3c;
+        --toggle-knob: #ffffff;
+      }
+    }
+
+    [data-theme="dark"] {
+      --bg: #000000;
+      --bg-secondary: #1c1c1e;
+      --text: #f5f5f7;
+      --text-secondary: #98989d;
+      --accent: #2997ff;
+      --accent-hover: #40a9ff;
+      --border: #38383a;
+      --toggle-bg: #3a3a3c;
+      --toggle-knob: #ffffff;
+    }
+
+    [data-theme="light"] {
+      --bg: #ffffff;
+      --bg-secondary: #f5f5f7;
+      --text: #1d1d1f;
+      --text-secondary: #6e6e73;
+      --accent: #0071e3;
+      --accent-hover: #0077ed;
+      --border: #d2d2d7;
+      --toggle-bg: #e5e5e5;
+      --toggle-knob: #ffffff;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.5rem;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .tool-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--tool-gradient-start), var(--tool-gradient-end));
+    }
+
+    .tool-icon svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .tool-name {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .back-link {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.2s ease;
+    }
+
+    .back-link:hover {
+      color: var(--accent);
+    }
+
+    .theme-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .theme-toggle svg {
+      width: 16px;
+      height: 16px;
+      stroke: var(--text-secondary);
+      fill: none;
+      stroke-width: 2;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      background: var(--toggle-bg);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 20px;
+      height: 20px;
+      background: var(--toggle-knob);
+      border-radius: 50%;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      transition: transform 0.2s ease;
+    }
+
+    [data-theme="dark"] .toggle-switch::after,
+    :root:not([data-theme="light"]) .toggle-switch::after {
+      transform: translateX(20px);
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root:not([data-theme="dark"]) .toggle-switch::after {
+        transform: translateX(0);
+      }
+    }
+
+    main {
+      flex: 1;
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+
+    .content {
+      width: 100%;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      background: var(--bg-secondary);
+      border-radius: 10px;
+      padding: 3px;
+      max-width: 280px;
+      margin: 0 auto 2rem;
+      border: 1px solid var(--border);
+    }
+
+    .tab {
+      flex: 1;
+      padding: 0.5rem 1rem;
+      border: none;
+      background: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .tab.active {
+      background: var(--bg);
+      color: var(--text);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    .panel { display: block; }
+    .panel.hidden { display: none; }
+
+    /* Form Controls */
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 0.35rem;
+    }
+
+    select, input[type="text"] {
+      width: 100%;
+      padding: 0.6rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 0.95rem;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+
+    select:focus, input[type="text"]:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .format-info {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-bottom: 1rem;
+      line-height: 1.5;
+    }
+
+    .format-info a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .validation-msg {
+      font-size: 0.8rem;
+      margin-top: 0.35rem;
+      min-height: 1.2em;
+    }
+
+    .validation-msg.error {
+      color: #ff3b30;
+    }
+
+    .validation-msg.success {
+      color: #34c759;
+    }
+
+    /* Preview */
+    .barcode-preview {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 180px;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin: 1.5rem 0;
+      padding: 1.5rem;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .barcode-preview canvas {
+      max-width: 100%;
+      height: auto;
+      transition: transform 0.3s ease;
+    }
+
+    .barcode-preview .empty-msg {
+      color: #999;
+      font-size: 0.9rem;
+    }
+
+    .rotate-90 canvas { transform: rotate(90deg); }
+    .rotate-180 canvas { transform: rotate(180deg); }
+    .rotate-270 canvas { transform: rotate(270deg); }
+
+    .barcode-error {
+      color: #ff3b30;
+      font-size: 0.85rem;
+    }
+
+    /* Options */
+    .options-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .option-item label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 0.3rem;
+    }
+
+    .option-item select {
+      padding: 0.45rem 0.6rem;
+      font-size: 0.85rem;
+    }
+
+    .range-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .range-wrap input[type="range"] {
+      flex: 1;
+      accent-color: var(--accent);
+    }
+
+    .range-val {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      min-width: 2em;
+      text-align: right;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      height: 100%;
+      padding-top: 0.2rem;
+    }
+
+    .toggle-row input[type="checkbox"] {
+      accent-color: var(--accent);
+      width: 16px;
+      height: 16px;
+    }
+
+    .toggle-row span {
+      font-size: 0.85rem;
+      color: var(--text);
+    }
+
+    /* Buttons */
+    .actions {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 0.6rem 1.25rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--accent-hover);
+    }
+
+    .btn-secondary {
+      background: var(--bg-secondary);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: var(--border);
+    }
+
+    .btn-small {
+      padding: 0.35rem 0.75rem;
+      font-size: 0.8rem;
+    }
+
+    /* Scanner */
+    .scanner-area {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4/3;
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 1rem;
+    }
+
+    .scanner-area video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+    }
+
+    .scanner-area video.active {
+      display: block;
+    }
+
+    .scanner-area canvas {
+      display: none;
+    }
+
+    .scanner-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #888;
+      gap: 0.75rem;
+    }
+
+    .scanner-placeholder svg {
+      width: 48px;
+      height: 48px;
+      stroke: #666;
+      fill: none;
+      stroke-width: 1.5;
+    }
+
+    .scanner-placeholder p {
+      font-size: 0.9rem;
+    }
+
+    .scanner-area.dragover {
+      outline: 3px dashed var(--accent);
+      outline-offset: -3px;
+    }
+
+    .scanner-area.dragover .scanner-placeholder p::after {
+      content: ' - Drop image here';
+    }
+
+    .scan-controls {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    /* Scan Result */
+    .scan-result {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .scan-result.hidden { display: none; }
+
+    .result-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .format-badge {
+      display: inline-block;
+      background: var(--accent);
+      color: white;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+
+    .result-text {
+      font-size: 1rem;
+      word-break: break-all;
+      margin-bottom: 0.75rem;
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+      line-height: 1.5;
+    }
+
+    .result-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .result-actions a {
+      padding: 0.35rem 0.75rem;
+      font-size: 0.8rem;
+      border-radius: 8px;
+      background: var(--accent);
+      color: white;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    /* Scan History */
+    .scan-history h3 {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 0.75rem;
+    }
+
+    .scan-history.hidden { display: none; }
+
+    .history-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.6rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 0.5rem;
+      gap: 0.75rem;
+    }
+
+    .history-item-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .history-item-text {
+      font-size: 0.85rem;
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .history-item-meta {
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: var(--text);
+      color: var(--bg);
+      padding: 0.6rem 1.25rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      opacity: 0;
+      transition: all 0.3s ease;
+      z-index: 1000;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    @media (max-width: 640px) {
+      .tool-name { font-size: 1.1rem; }
+      .header-right { gap: 1rem; }
+      .back-link { font-size: 0.8rem; }
+      main { padding: 1.5rem 1rem; }
+      .options-grid { grid-template-columns: 1fr 1fr; }
+      .actions { flex-direction: column; }
+      .actions .btn { width: 100%; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-left">
+      <div class="tool-icon">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M5 6v12" stroke="white" stroke-width="2" stroke-linecap="round"/>
+          <path d="M8 6v12" stroke="white" stroke-width="1" stroke-linecap="round"/>
+          <path d="M10 6v12" stroke="white" stroke-width="2" stroke-linecap="round"/>
+          <path d="M12.5 6v12" stroke="white" stroke-width="1" stroke-linecap="round"/>
+          <path d="M14.5 6v12" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M17 6v12" stroke="white" stroke-width="1" stroke-linecap="round"/>
+          <path d="M19 6v12" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="tool-name">Barcode</div>
+    </div>
+    <div class="header-right">
+      <a href="https://wbtl.app" class="back-link">wbtl.app</a>
+      <div class="theme-toggle">
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"/>
+          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+        </svg>
+        <div class="toggle-switch" id="theme-toggle" role="button" tabindex="0" aria-label="Toggle dark mode"></div>
+        <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="content">
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab active" data-tab="generate">Generate</button>
+        <button class="tab" data-tab="scan">Scan</button>
+      </div>
+
+      <!-- Generate Panel -->
+      <div id="generate-panel" class="panel">
+        <div class="form-group">
+          <label for="format-select">Format</label>
+          <select id="format-select">
+            <optgroup label="1D Barcodes">
+              <option value="code128">Code 128</option>
+              <option value="code39">Code 39</option>
+              <option value="ean13">EAN-13</option>
+              <option value="ean8">EAN-8</option>
+              <option value="upca">UPC-A</option>
+              <option value="upce">UPC-E</option>
+              <option value="itf14">ITF-14</option>
+              <option value="rationalizedCodabar">Codabar</option>
+            </optgroup>
+            <optgroup label="2D Barcodes">
+              <option value="datamatrix">Data Matrix</option>
+              <option value="pdf417">PDF417</option>
+              <option value="azteccode">Aztec</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <div class="format-info" id="format-info"></div>
+
+        <div class="form-group">
+          <label for="data-input">Data</label>
+          <input type="text" id="data-input" placeholder="Enter data to encode" autocomplete="off" spellcheck="false">
+          <div class="validation-msg" id="validation-msg"></div>
+        </div>
+
+        <div class="barcode-preview" id="barcode-preview">
+          <canvas id="barcode-canvas"></canvas>
+          <span class="empty-msg" id="empty-msg">Enter data to generate a barcode</span>
+        </div>
+
+        <div class="options-grid">
+          <div class="option-item">
+            <label>Scale</label>
+            <div class="range-wrap">
+              <input type="range" id="scale-input" min="1" max="10" value="3">
+              <span class="range-val" id="scale-val">3</span>
+            </div>
+          </div>
+          <div class="option-item" id="height-group">
+            <label>Height (mm)</label>
+            <div class="range-wrap">
+              <input type="range" id="height-input" min="5" max="50" value="10">
+              <span class="range-val" id="height-val">10</span>
+            </div>
+          </div>
+          <div class="option-item" id="text-group">
+            <label>Display</label>
+            <div class="toggle-row">
+              <input type="checkbox" id="show-text" checked>
+              <span>Show text</span>
+            </div>
+          </div>
+          <div class="option-item">
+            <label>Rotation</label>
+            <select id="rotation-select">
+              <option value="0">0&deg;</option>
+              <option value="90">90&deg;</option>
+              <option value="180">180&deg;</option>
+              <option value="270">270&deg;</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-primary" id="download-png" disabled>Download PNG</button>
+          <button class="btn btn-primary" id="download-svg" disabled>Download SVG</button>
+          <button class="btn btn-secondary" id="copy-btn" disabled>Copy to Clipboard</button>
+        </div>
+      </div>
+
+      <!-- Scan Panel -->
+      <div id="scan-panel" class="panel hidden">
+        <div class="scanner-area" id="scanner-area">
+          <video id="scan-video" autoplay playsinline></video>
+          <canvas id="scan-canvas"></canvas>
+          <div class="scanner-placeholder" id="scanner-placeholder">
+            <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 1h6M17 1h6M1 7V1M23 7V1M1 17v6M1 23h6M23 17v6M17 23h6"/>
+              <rect x="5" y="5" width="14" height="14" rx="1"/>
+            </svg>
+            <p>Start camera or upload an image to scan</p>
+          </div>
+        </div>
+
+        <div class="scan-controls">
+          <button class="btn btn-primary" id="camera-btn">Start Camera</button>
+          <button class="btn btn-secondary" id="upload-btn">Upload Image</button>
+          <input type="file" id="file-input" accept="image/*" hidden>
+        </div>
+
+        <div class="scan-result hidden" id="scan-result">
+          <div class="result-header">
+            <span class="format-badge" id="result-format"></span>
+          </div>
+          <div class="result-text" id="result-text"></div>
+          <div class="result-actions">
+            <button class="btn btn-secondary btn-small" id="copy-result">Copy</button>
+            <a href="#" target="_blank" rel="noopener" id="open-url" style="display:none">Open URL</a>
+          </div>
+        </div>
+
+        <div class="scan-history hidden" id="scan-history">
+          <h3>Scan History</h3>
+          <div id="history-list"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    function getSystemTheme() {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+
+    function getStoredTheme() {
+      return localStorage.getItem('wbtl-theme');
+    }
+
+    function setTheme(theme) {
+      if (theme === 'system') {
+        document.documentElement.removeAttribute('data-theme');
+        localStorage.removeItem('wbtl-theme');
+      } else {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('wbtl-theme', theme);
+      }
+    }
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme');
+      const system = getSystemTheme();
+      if (!current) {
+        setTheme(system === 'dark' ? 'light' : 'dark');
+      } else {
+        if (current === system) {
+          setTheme(current === 'dark' ? 'light' : 'dark');
+        } else {
+          setTheme('system');
+        }
+      }
+    }
+
+    (function() {
+      const stored = getStoredTheme();
+      if (stored) setTheme(stored);
+    })();
+
+    document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+    document.getElementById('theme-toggle').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleTheme();
+      }
+    });
+  </script>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

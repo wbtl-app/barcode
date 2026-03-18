@@ -1,5 +1,27 @@
-# barcode
+# Barcode
 
-A wbtl.app tool.
+A 1D and 2D barcode generator and scanner.
 
-Visit: https://barcode.wbtl.app
+https://barcode.wbtl.app
+
+## Development
+
+### Setup
+```bash
+npm install
+```
+
+### Build
+```bash
+npm run build
+```
+
+## Output
+
+Production files are in the `dist/` folder:
+- `dist/index.html` - Main application
+- `dist/assets/` - Bundled assets (JS, WASM)
+
+## Deploy
+
+Copy the contents of `dist/` to any static hosting service.
